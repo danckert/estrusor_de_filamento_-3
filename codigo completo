@@ -1,0 +1,48 @@
+#include<Stepper.h>
+#include<max6675.h>
+
+//Definir pines pàra motor a psos
+const int pinIn1 = 8;
+const int pinIn2 = 9;
+const int pinIn3 = 10;
+const int pinIn4 = 11;
+
+//define pines para el sensor de temperatura
+const int pinSCK = 7;
+const int pinCS = 6;
+const int pinSO = 5;
+
+//configurar el motor a pasos
+Stepper motor(200, pinIn1, pinIn2, pinIn3, pinIn4);
+
+//configure el sensor de temperatura (en este caso el MAX6675)
+MAX6675 temp(pinSCK, pinCS, pinSO);
+
+//Definir velocidad del motor y temperatura objetivo
+const int velocidad = 10; //RPM
+const float tempObjetivo = 250.0; //Celsius
+
+void setup() {
+  Serial.begin(9600);
+  motor.setSpeed(velocidad);
+}
+
+void loop() {
+  //Leer temperarura actual
+  float tempActual = temp.readCelsius();
+
+  //Regular temperatura
+  if (tempActual < tempObjetivo){
+    //enceder el calefactor
+    digitalWrite(12, HIGH);
+  }
+  else if (tempActual > tempObjetivo){
+    //apagar el led
+    digitalWrite(12, LOW);
+  }
+  // mover el motor a psos 
+  motor.step(1);
+
+  //esperar 50ms
+  delay(50);
+}
