@@ -1,48 +1,48 @@
-#include<Stepper.h>
-#include<max6675.h>
+#include <Stepper.h>
 
-//Definir pines pàra motor a psos
-const int pinIn1 = 8;
-const int pinIn2 = 9;
-const int pinIn3 = 10;
-const int pinIn4 = 11;
+//pines para el motor a pasos
+const int pinln1 = 8;
+const int pinln2 = 9;
+const int pinln3 = 10;
+const int pinln4 = 11;
 
-//define pines para el sensor de temperatura
-const int pinSCK = 7;
-const int pinCS = 6;
-const int pinSO = 5;
+//configuracion del motor a psos
+Stepper motor(2048, pinln1, pinln2, pinln3, pinln4);
 
-//configurar el motor a pasos
-Stepper motor(200, pinIn1, pinIn2, pinIn3, pinIn4);
+const int sensorPin = A0; // Pin del sensor de temperatura
+const int relayPin = 7; // Pin para controlar el relé
 
-//configure el sensor de temperatura (en este caso el MAX6675)
-MAX6675 temp(pinSCK, pinCS, pinSO);
-
-//Definir velocidad del motor y temperatura objetivo
-const int velocidad = 10; //RPM
-const float tempObjetivo = 250.0; //Celsius
+//velocidad del motor y temperatura objetivo
+const int velocidad = 10;//en rpm
+const float desiredTemp = 200.0; // Temperatura deseada en celsius
 
 void setup() {
   Serial.begin(9600);
+  pinMode(relayPin, OUTPUT);
+  digitalWrite(relayPin, LOW);//El relay deve estar apagado
   motor.setSpeed(velocidad);
+
 }
 
 void loop() {
-  //Leer temperarura actual
-  float tempActual = temp.readCelsius();
+  float temp = readTemperature();
 
-  //Regular temperatura
-  if (tempActual < tempObjetivo){
-    //enceder el calefactor
-    digitalWrite(12, HIGH);
+  if(temp < desiredTemp){
+    digitalWrite(relayPin, HIGH);
+  }else{
+    digitalWrite(relayPin, LOW);
   }
-  else if (tempActual > tempObjetivo){
-    //apagar el led
-    digitalWrite(12, LOW);
-  }
-  // mover el motor a psos 
-  motor.step(1);
+  motor.step(50);
+  delay(1000);
 
-  //esperar 50ms
-  delay(50);
+  Serial.print("Temperatura: ");
+  Serial.println(temp);
+
 }
+
+float readTemperature(){
+  int sensorValue = analogRead(sensorPin);
+  float voltage = sensorValue * (5.0 / 1023.0); //Conviertir a voltaje
+  float temperature = voltage * 100; // Convertir a °C (para LM35)
+  return temperature;
+  }
