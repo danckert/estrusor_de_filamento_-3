@@ -11,14 +11,16 @@ Stepper motor(2048, pinln1, pinln2, pinln3, pinln4);
 
 const int sensorPin = A0; // Pin del sensor de temperatura
 const int relayPin = 7; // Pin para controlar el relé
+const int limitSwitchPin = 2;//Piin del fin de carrera
 
 //velocidad del motor y temperatura objetivo
-const int velocidad = 10;//en rpm
-const float desiredTemp = 200.0; // Temperatura deseada en celsius
+const int velocidad = 20;//en rpm
+const float desiredTemp = 30.0; // Temperatura deseada en celsius
 
 void setup() {
   Serial.begin(9600);
   pinMode(relayPin, OUTPUT);
+  pinMode(limitSwitchPin, INPUT_PULLUP);// Configura el fin de carrera como entrada
   digitalWrite(relayPin, LOW);//El relay deve estar apagado
   motor.setSpeed(velocidad);
 
@@ -32,8 +34,15 @@ void loop() {
   }else{
     digitalWrite(relayPin, LOW);
   }
-  motor.step(50);
-  delay(1000);
+
+  //Controlar el motor a pasos en base al fin de carrera
+  if(digitalRead(limitSwitchPin) == LOW){
+    motor.step(50);
+  }else{
+    motor.step(0);
+  }
+  
+  delay(10);
 
   Serial.print("Temperatura: ");
   Serial.println(temp);
