@@ -1,57 +1,54 @@
 #include <Stepper.h>
 
-//pines para el motor a pasos
-const int pinln1 = 8;
-const int pinln2 = 9;
-const int pinln3 = 10;
-const int pinln4 = 11;
+const int stepsPerRevolution = 180; // Cambia esto según tu motor
+Stepper myStepper(stepsPerRevolution, 8, 9, 10, 11); // Pines del A4988
 
-//configuracion del motor a psos
-Stepper motor(2048, pinln1, pinln2, pinln3, pinln4);
+const int relayPin = 7; // Pin, para controlar el relé
 
-const int sensorPin = A0; // Pin del sensor de temperatura
-const int relayPin = 7; // Pin para controlar el relé
-const int limitSwitchPin = 2;//Piin del fin de carrera
-
-//velocidad del motor y temperatura objetivo
-const int velocidad = 20;//en rpm
-const float desiredTemp = 30.0; // Temperatura deseada en celsius
+// Variables para el control del tiempo
+unsigned long tiempoEncendido = 120000;   // Tiempo en milisegundos que el calefactor estará encendido (ejemplo: 60 segundos)
+unsigned long tiempoApagado = 60000;     // Tiempo en milisegundos que el calefactor estará apagado (ejemplo: 30 segundos)
+unsigned long tiempoAnterior = 0;         // Variable para llevar el control del tiempo
+bool calefactorEncendido = false;         // Estado actual del calefactor
 
 void setup() {
   Serial.begin(9600);
   pinMode(relayPin, OUTPUT);
-  pinMode(limitSwitchPin, INPUT_PULLUP);// Configura el fin de carrera como entrada
-  digitalWrite(relayPin, LOW);//El relay deve estar apagado
-  motor.setSpeed(velocidad);
-
+  digitalWrite(relayPin, LOW); // Asegúrate de que el calefactor esté apagado al inicio
+  myStepper.setSpeed(180); // Velocidad en RPM para el motor
 }
 
 void loop() {
-  float temp = readTemperature();
+  unsigned long tiempoActual = millis(); // Obtiene el tiempo actual (en milisegundos desde que inició el Arduino)
 
-  if(temp < desiredTemp){
-    digitalWrite(relayPin, HIGH);
-  }else{
-    digitalWrite(relayPin, LOW);
+  // Control del relé en función del tiempo
+  if (calefactorEncendido) {
+    if (tiempoActual - tiempoAnterior >= tiempoEncendido) {
+      // Apaga el calefactor después del tiempo de encendido
+      digitalWrite(relayPin, LOW);
+      calefactorEncendido = false;
+      tiempoAnterior = tiempoActual;  // Actualiza el tiempo
+    }
+  } else {
+    if (tiempoActual - tiempoAnterior >= tiempoApagado) {
+      // Enciende el calefactor después del tiempo de apagado
+      digitalWrite(relayPin, HIGH);
+      calefactorEncendido = true;
+      tiempoAnterior = tiempoActual;  // Actualiza el tiempo
+    }
   }
 
-  //Controlar el motor a pasos en base al fin de carrera
-  if(digitalRead(limitSwitchPin) == LOW){
-    motor.step(50);
-  }else{
-    motor.step(0);
+  // Mueve el motor (ajusta según tu lógica)
+  myStepper.step(stepsPerRevolution);
+
+  // Muestra el estado del calefactor y el motor en el monitor serial
+  Serial.print("Estado del calefactor: ");
+  if (calefactorEncendido) {
+    Serial.println("Encendido");
+  } else {
+    Serial.println("Apagado");
   }
-  
-  delay(10);
 
-  Serial.print("Temperatura: ");
-  Serial.println(temp);
-
+  // Espera un segundo antes de la siguiente iteración (opcional, según tu necesidad)
+ // delay(100);  // Puedes ajustar este valor si lo deseas
 }
-
-float readTemperature(){
-  int sensorValue = analogRead(sensorPin);
-  float voltage = sensorValue * (5.0 / 1023.0); //Conviertir a voltaje
-  float temperature = voltage * 100; // Convertir a °C (para LM35)
-  return temperature;
-  }
